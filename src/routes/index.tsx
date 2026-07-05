@@ -3,6 +3,11 @@ import { useEffect, useState } from "react";
 import { generateLesson, type Lesson as LessonType } from "@/lib/lesson.functions";
 import { useGame, xpForLevel } from "@/lib/gamification";
 import { Lesson } from "@/components/lesson/activities";
+import { useAuth } from "@/lib/auth";
+import { useApiKey } from "@/lib/api-key";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { SettingsPanel } from "@/components/settings-panel";
+import { AuthPanel } from "@/components/auth-panel";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -27,14 +32,16 @@ function Index() {
   const [lesson, setLesson] = useState<LessonType | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { state, addXp, levelUp, dismissLevelUp, xpToast } = useGame();
+  const { user } = useAuth();
+  const { apiKey, setApiKey } = useApiKey();
+  const { state, addXp, levelUp, dismissLevelUp, xpToast } = useGame(user?.id ?? null);
 
   const generate = async () => {
     setLoading(true);
     setError(null);
     setLesson(null);
     try {
-      const l = await generateLesson({ data: { source: source || SAMPLE } });
+      const l = await generateLesson({ data: { source: source || SAMPLE, apiKey } });
       setLesson(l);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
@@ -59,6 +66,9 @@ function Index() {
             <Chip color="var(--gradient-sun)">🔥 {state.streak} day streak</Chip>
             <Chip color="var(--gradient-mint)">⭐ Lv {state.level}</Chip>
             <Chip color="var(--gradient-card)">💎 {state.xp} XP</Chip>
+            <ThemeToggle />
+            <SettingsPanel apiKey={apiKey} onSave={setApiKey} />
+            <AuthPanel user={user} />
           </div>
         </div>
         <div className="mx-auto max-w-5xl px-4 pb-3">
@@ -90,7 +100,7 @@ function Index() {
             value={source}
             onChange={(e) => setSource(e.target.value)}
             placeholder="Paste text or type a topic (e.g. 'Ordering coffee at a café')..."
-            className="mt-4 h-32 w-full rounded-2xl border-2 border-white/40 bg-white/70 p-4 text-sm outline-none focus:border-primary"
+            className="mt-4 h-32 w-full rounded-2xl border-2 border-white/40 bg-white/70 p-4 text-sm outline-none focus:border-primary dark:bg-card/70"
           />
           <div className="mt-3 flex flex-wrap gap-2">
             <button
@@ -102,14 +112,14 @@ function Index() {
             </button>
             <button
               onClick={() => setSource(SAMPLE)}
-              className="rounded-full bg-white px-5 py-3 font-semibold shadow-[var(--shadow-soft)]"
+              className="rounded-full bg-white px-5 py-3 font-semibold shadow-[var(--shadow-soft)] dark:bg-card"
             >
               Try sample
             </button>
             {lesson && (
               <button
                 onClick={() => { setLesson(null); setSource(""); }}
-                className="rounded-full bg-white/80 px-5 py-3 font-semibold shadow-[var(--shadow-soft)]"
+                className="rounded-full bg-white/80 px-5 py-3 font-semibold shadow-[var(--shadow-soft)] dark:bg-card/80"
               >
                 New lesson
               </button>
@@ -122,7 +132,7 @@ function Index() {
         {state.badges.length > 0 && (
           <section className="mt-4 flex flex-wrap gap-2">
             {state.badges.map((b) => (
-              <span key={b} className="rounded-full bg-white px-3 py-1 text-xs font-semibold shadow-[var(--shadow-soft)] animate-pop">
+              <span key={b} className="rounded-full bg-white px-3 py-1 text-xs font-semibold shadow-[var(--shadow-soft)] animate-pop dark:bg-card">
                 {b}
               </span>
             ))}
@@ -134,7 +144,7 @@ function Index() {
 
         {lesson && (
           <section className="mt-6">
-            <div className="mb-4 rounded-3xl bg-white p-5 shadow-[var(--shadow-soft)]">
+            <div className="mb-4 rounded-3xl bg-white p-5 shadow-[var(--shadow-soft)] dark:bg-card">
               <div className="text-xs uppercase tracking-wider text-muted-foreground">{lesson.level} · Lesson</div>
               <h2 className="mt-1 text-2xl font-extrabold">{lesson.title}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{lesson.summary}</p>
@@ -197,10 +207,10 @@ function FeatureCard({ emoji, title, desc, bg }: { emoji: string; title: string;
 function SkeletonLesson() {
   return (
     <div className="mt-6 animate-pulse space-y-3">
-      <div className="h-24 rounded-3xl bg-white/60" />
+      <div className="h-24 rounded-3xl bg-white/60 dark:bg-card/60" />
       <div className="grid gap-3 sm:grid-cols-2">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-24 rounded-3xl bg-white/60" />
+          <div key={i} className="h-24 rounded-3xl bg-white/60 dark:bg-card/60" />
         ))}
       </div>
     </div>

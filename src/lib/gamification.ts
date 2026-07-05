@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { supabase } from "./supabase";
 
 export type GameState = {
   xp: number;
@@ -31,18 +32,21 @@ const DEFAULT: GameState = {
   dailyProgress: 0,
 };
 
+function resetDailyIfNewDay(parsed: GameState): GameState {
+  const t = today();
+  if (parsed.lastActive !== t) {
+    return { ...parsed, dailyProgress: 0 };
+  }
+  return parsed;
+}
+
 function load(): GameState {
   if (typeof window === "undefined") return DEFAULT;
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return { ...DEFAULT };
     const parsed = { ...DEFAULT, ...JSON.parse(raw) } as GameState;
-    // Reset daily progress if new day
-    const t = today();
-    if (parsed.lastActive !== t) {
-      parsed.dailyProgress = 0;
-    }
-    return parsed;
+    return resetDailyIfNewDay(parsed);
   } catch {
     return { ...DEFAULT };
   }
@@ -53,22 +57,71 @@ function save(s: GameState) {
   localStorage.setItem(KEY, JSON.stringify(s));
 }
 
+// Once signed in, game state also mirrors to the Supabase `progress` table
+// (keyed by user_id, stored as a JSON blob) so it follows the account across
+// devices; the first sync migrates whatever was saved locally.
+async function loadRemote(userId: string): Promise<GameState | null> {
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from("progress")
+    .select("state")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!data?.state) return null;
+  return resetDailyIfNewDay({ ...DEFAULT, ...(data.state as Partial<GameState>) });
+}
+
+async function saveRemote(userId: string, state: GameState) {
+  if (!supabase) return;
+  await supabase.from("progress").upsert({
+    user_id: userId,
+    state,
+    updated_at: new Date().toISOString(),
+  });
+}
+
 export function xpForLevel(level: number): number {
   return level * 100;
 }
 
-export function useGame() {
+export function useGame(userId?: string | null) {
   const [state, setState] = useState<GameState>(DEFAULT);
   const [levelUp, setLevelUp] = useState<number | null>(null);
   const [xpToast, setXpToast] = useState<{ id: number; amount: number } | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    setState(load());
-  }, []);
+    let cancelled = false;
+    setLoaded(false);
+
+    async function init() {
+      if (userId) {
+        const remote = await loadRemote(userId);
+        if (cancelled) return;
+        if (remote) {
+          setState(remote);
+        } else {
+          const local = load();
+          setState(local);
+          await saveRemote(userId, local);
+        }
+      } else if (!cancelled) {
+        setState(load());
+      }
+      if (!cancelled) setLoaded(true);
+    }
+
+    init();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   useEffect(() => {
-    if (state.lastActive) save(state);
-  }, [state]);
+    if (!loaded || !state.lastActive) return;
+    save(state);
+    if (userId) saveRemote(userId, state);
+  }, [state, userId, loaded]);
 
   const addXp = useCallback((amount: number) => {
     setState((prev) => {

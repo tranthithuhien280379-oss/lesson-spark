@@ -60,13 +60,13 @@ export function Flashcards({ items, onXp }: { items: Vocab[]; onXp: OnXp }) {
             e.stopPropagation();
             speak(card.word);
           }}
-          className="rounded-full bg-white px-4 py-2 text-sm font-semibold shadow-[var(--shadow-soft)]"
+          className="rounded-full bg-white px-4 py-2 text-sm font-semibold shadow-[var(--shadow-soft)] dark:bg-card"
         >
           🔊 Pronounce
         </button>
         <button
           onClick={() => next(false)}
-          className="rounded-full bg-white px-4 py-2 text-sm font-semibold shadow-[var(--shadow-soft)]"
+          className="rounded-full bg-white px-4 py-2 text-sm font-semibold shadow-[var(--shadow-soft)] dark:bg-card"
         >
           Skip
         </button>
@@ -109,7 +109,7 @@ export function MCQGame({ items, onXp }: { items: MCQ[]; onXp: OnXp }) {
   if (done) return <Summary label="Quiz" score={score} total={items.length} onReset={() => { setI(0); setPicked(null); setScore(0); setDone(false); }} />;
 
   return (
-    <div className="mx-auto max-w-md rounded-3xl bg-white p-6 shadow-[var(--shadow-soft)] animate-float">
+    <div className="mx-auto max-w-md rounded-3xl bg-white p-6 shadow-[var(--shadow-soft)] animate-float dark:bg-card">
       <div className="mb-2 text-xs text-muted-foreground">Question {i + 1} / {items.length}</div>
       <h3 className="mb-4 text-lg font-bold">{q.question}</h3>
       <div className="flex flex-col gap-2">
@@ -169,7 +169,7 @@ export function TrueFalseGame({ items, onXp }: { items: TrueFalse[]; onXp: OnXp 
   if (done) return <Summary label="True/False" score={score} total={items.length} onReset={() => { setI(0); setPicked(null); setScore(0); setDone(false); }} />;
 
   return (
-    <div className="mx-auto max-w-md rounded-3xl bg-white p-6 shadow-[var(--shadow-soft)] animate-float">
+    <div className="mx-auto max-w-md rounded-3xl bg-white p-6 shadow-[var(--shadow-soft)] animate-float dark:bg-card">
       <div className="mb-2 text-xs text-muted-foreground">{i + 1} / {items.length}</div>
       <div className="mb-6 rounded-2xl p-5 text-lg font-semibold" style={{ background: "var(--gradient-sun)" }}>
         {q.statement}
@@ -248,7 +248,7 @@ export function MatchingGame({ items, onXp }: { items: MatchPair[]; onXp: OnXp }
                 disabled={done}
                 onClick={() => setSelLeft(p.left)}
                 className={`rounded-2xl px-4 py-3 text-left font-semibold shadow-[var(--shadow-soft)] transition ${
-                  done ? "bg-accent/50 opacity-60 line-through" : sel ? "bg-primary text-primary-foreground" : "bg-white"
+                  done ? "bg-accent/50 opacity-60 line-through" : sel ? "bg-primary text-primary-foreground" : "bg-white dark:bg-card"
                 }`}
               >
                 {p.left}
@@ -265,7 +265,7 @@ export function MatchingGame({ items, onXp }: { items: MatchPair[]; onXp: OnXp }
                 disabled={done}
                 onClick={() => tryMatch(r)}
                 className={`rounded-2xl px-4 py-3 text-left text-sm shadow-[var(--shadow-soft)] transition ${
-                  done ? "bg-accent/50 opacity-60 line-through" : wrong === r ? "bg-destructive/10 animate-shake" : "bg-white"
+                  done ? "bg-accent/50 opacity-60 line-through" : wrong === r ? "bg-destructive/10 animate-shake" : "bg-white dark:bg-card"
                 }`}
               >
                 {r}
@@ -302,7 +302,7 @@ export function FillBlankGame({ items, onXp }: { items: FillBlank[]; onXp: OnXp 
 
   const parts = q.dialogue.split("___");
   return (
-    <div className="mx-auto max-w-md rounded-3xl bg-white p-6 shadow-[var(--shadow-soft)] animate-float">
+    <div className="mx-auto max-w-md rounded-3xl bg-white p-6 shadow-[var(--shadow-soft)] animate-float dark:bg-card">
       <div className="mb-2 text-xs text-muted-foreground">{i + 1} / {items.length}</div>
       <div className="mb-4 text-lg leading-relaxed">
         {parts[0]}
@@ -414,7 +414,7 @@ export function VocabList({ items }: { items: Vocab[] }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {items.map((v, i) => (
-        <div key={i} className="rounded-3xl bg-white p-4 shadow-[var(--shadow-soft)] animate-float" style={{ animationDelay: `${i * 40}ms` }}>
+        <div key={i} className="rounded-3xl bg-white p-4 shadow-[var(--shadow-soft)] animate-float dark:bg-card" style={{ animationDelay: `${i * 40}ms` }}>
           <div className="flex items-start gap-3">
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl text-2xl" style={{ background: "var(--gradient-mint)" }}>
               {v.emoji}
@@ -470,7 +470,7 @@ export function Lesson({ lesson, onXp }: { lesson: Lesson; onXp: OnXp }) {
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`rounded-full px-4 py-2 text-sm font-semibold shadow-[var(--shadow-soft)] transition ${
-              tab === t.key ? "bg-primary text-primary-foreground" : "bg-white"
+              tab === t.key ? "bg-primary text-primary-foreground" : "bg-white dark:bg-card"
             }`}
           >
             {t.emoji} {t.label}

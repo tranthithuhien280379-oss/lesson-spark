@@ -63,18 +63,21 @@ Rules:
 - fillBlanks.dialogue MUST contain the substring "___" (three underscores).
 - Vary difficulty. Keep sentences short.`;
 
-async function callCoachio(userContent: string): Promise<string> {
-  const apiKey = process.env.COACHIO_API_KEY;
-  if (!apiKey) throw new Error("Missing COACHIO_API_KEY");
+const COACHIO_URL = "https://api.coachio.ai/api/v1/llm/chat/completions";
+const COACHIO_MODEL = "google/gemini-3.1-flash-lite";
 
-  const res = await fetch("https://api.coachio.ai/api/v1/llm/chat/completions", {
+async function callCoachio(userContent: string, clientApiKey?: string): Promise<string> {
+  const apiKey = clientApiKey?.trim() || process.env.COACHIO_API_KEY;
+  if (!apiKey) throw new Error("Missing Coachio API key. Add one in Settings.");
+
+  const res = await fetch(COACHIO_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-API-Key": apiKey,
     },
     body: JSON.stringify({
-      model: "google/gemini-3.1-flash-lite",
+      model: COACHIO_MODEL,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userContent },
@@ -156,15 +159,51 @@ function normalize(raw: unknown): Lesson {
 
 export const generateLesson = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => {
-    const o = input as { source?: string };
+    const o = input as { source?: string; apiKey?: string };
     const source = (o?.source ?? "").toString().trim();
     if (!source) throw new Error("Please provide a topic or paste some content.");
     if (source.length > 20000) throw new Error("Content too long (max 20,000 chars).");
-    return { source };
+    return { source, apiKey: o?.apiKey };
   })
   .handler(async ({ data }) => {
     const userMsg = `Create a gamified ESL English lesson based on the following topic or source text. Derive the lesson title from it.\n\n---\n${data.source}\n---`;
-    const text = await callCoachio(userMsg);
+    const text = await callCoachio(userMsg, data.apiKey);
     const parsed = extractJson(text);
     return normalize(parsed);
+  });
+
+export const testApiKey = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => {
+    const o = input as { apiKey?: string };
+    return { apiKey: o?.apiKey };
+  })
+  .handler(async ({ data }) => {
+    const apiKey = data.apiKey?.trim() || process.env.COACHIO_API_KEY;
+    if (!apiKey) return { ok: false as const, error: "No API key provided" };
+
+    try {
+      const res = await fetch(COACHIO_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": apiKey,
+        },
+        body: JSON.stringify({
+          model: COACHIO_MODEL,
+          stream: false,
+          temperature: 0,
+          max_tokens: 1,
+          messages: [{ role: "user", content: "ping" }],
+        }),
+      });
+      if (res.ok) return { ok: true as const };
+      const text = await res.text().catch(() => "");
+      return {
+        ok: false as const,
+        error: `Coachio responded ${res.status}`,
+        detail: text.slice(0, 300),
+      };
+    } catch (e) {
+      return { ok: false as const, error: e instanceof Error ? e.message : "Network error" };
+    }
   });
