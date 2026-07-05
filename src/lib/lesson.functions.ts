@@ -1,0 +1,170 @@
+import { createServerFn } from "@tanstack/react-start";
+
+export type Vocab = {
+  word: string;
+  definition: string;
+  emoji: string;
+  ipa: string;
+  example: string;
+};
+
+export type MCQ = {
+  question: string;
+  options: string[];
+  answerIndex: number;
+  explanation: string;
+};
+
+export type TrueFalse = {
+  statement: string;
+  answer: boolean;
+  explanation: string;
+};
+
+export type MatchPair = { left: string; right: string };
+
+export type FillBlank = {
+  dialogue: string; // uses ___ for blank
+  answer: string;
+  hint: string;
+};
+
+export type Lesson = {
+  title: string;
+  level: "Beginner" | "Elementary" | "Intermediate";
+  summary: string;
+  vocab: Vocab[];
+  mcq: MCQ[];
+  trueFalse: TrueFalse[];
+  matching: MatchPair[];
+  fillBlanks: FillBlank[];
+};
+
+const SYSTEM_PROMPT = `You are an expert ESL curriculum designer. Given a topic or a passage of source material, produce a compact, engaging English lesson for beginner–intermediate ESL learners.
+
+Return ONLY valid minified JSON matching exactly this TypeScript type (no markdown, no code fences, no commentary):
+
+{
+  "title": string,               // short, catchy, derived from the source
+  "level": "Beginner" | "Elementary" | "Intermediate",
+  "summary": string,             // 1-2 sentences in simple English
+  "vocab": Array<{ "word": string, "definition": string, "emoji": string, "ipa": string, "example": string }>, // 8 items
+  "mcq": Array<{ "question": string, "options": string[], "answerIndex": number, "explanation": string }>, // 5 items, 4 options each
+  "trueFalse": Array<{ "statement": string, "answer": boolean, "explanation": string }>, // 5 items
+  "matching": Array<{ "left": string, "right": string }>, // 6 word↔definition pairs, from the vocab
+  "fillBlanks": Array<{ "dialogue": string, "answer": string, "hint": string }> // 5 items. Use "___" in dialogue as the blank.
+}
+
+Rules:
+- Use simple, clear English.
+- "emoji" must be ONE emoji character that visually represents the word.
+- "ipa" is IPA pronunciation in slashes e.g. "/ˈæpəl/".
+- Every MCQ must have exactly 4 options and a valid answerIndex (0–3).
+- fillBlanks.dialogue MUST contain the substring "___" (three underscores).
+- Vary difficulty. Keep sentences short.`;
+
+async function callCoachio(userContent: string): Promise<string> {
+  const apiKey = process.env.COACHIO_API_KEY;
+  if (!apiKey) throw new Error("Missing COACHIO_API_KEY");
+
+  const res = await fetch("https://api.coachio.ai/api/v1/llm/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-API-Key": apiKey,
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3.1-flash-lite",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userContent },
+      ],
+      stream: false,
+      temperature: 0.7,
+      max_tokens: 4000,
+      response_format: { type: "json_object" },
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    const safe = body.slice(0, 500);
+    if (res.status === 401) throw new Error("Invalid Coachio API key");
+    if (res.status === 402) throw new Error("Insufficient Coachio credits");
+    if (res.status === 429) throw new Error("Rate limited. Please retry shortly.");
+    throw new Error(`Coachio error ${res.status}: ${safe}`);
+  }
+
+  const json = (await res.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const text = json.choices?.[0]?.message?.content;
+  if (!text) throw new Error("Empty response from Coachio");
+  return text;
+}
+
+function extractJson(text: string): unknown {
+  const trimmed = text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "");
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const first = trimmed.indexOf("{");
+    const last = trimmed.lastIndexOf("}");
+    if (first >= 0 && last > first) {
+      return JSON.parse(trimmed.slice(first, last + 1));
+    }
+    throw new Error("Model did not return valid JSON");
+  }
+}
+
+function normalize(raw: unknown): Lesson {
+  const r = raw as Partial<Lesson>;
+  const lesson: Lesson = {
+    title: (r.title ?? "Your Lesson").toString().slice(0, 120),
+    level: (r.level as Lesson["level"]) ?? "Elementary",
+    summary: (r.summary ?? "").toString(),
+    vocab: (r.vocab ?? []).slice(0, 12).map((v) => ({
+      word: (v.word ?? "").toString(),
+      definition: (v.definition ?? "").toString(),
+      emoji: (v.emoji ?? "📘").toString().slice(0, 4),
+      ipa: (v.ipa ?? "").toString(),
+      example: (v.example ?? "").toString(),
+    })),
+    mcq: (r.mcq ?? []).slice(0, 8).map((q) => ({
+      question: (q.question ?? "").toString(),
+      options: (q.options ?? []).slice(0, 4).map(String),
+      answerIndex: Math.max(0, Math.min(3, Number(q.answerIndex) || 0)),
+      explanation: (q.explanation ?? "").toString(),
+    })),
+    trueFalse: (r.trueFalse ?? []).slice(0, 8).map((q) => ({
+      statement: (q.statement ?? "").toString(),
+      answer: Boolean(q.answer),
+      explanation: (q.explanation ?? "").toString(),
+    })),
+    matching: (r.matching ?? []).slice(0, 8).map((p) => ({
+      left: (p.left ?? "").toString(),
+      right: (p.right ?? "").toString(),
+    })),
+    fillBlanks: (r.fillBlanks ?? []).slice(0, 8).map((f) => ({
+      dialogue: (f.dialogue ?? "").toString(),
+      answer: (f.answer ?? "").toString(),
+      hint: (f.hint ?? "").toString(),
+    })),
+  };
+  return lesson;
+}
+
+export const generateLesson = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => {
+    const o = input as { source?: string };
+    const source = (o?.source ?? "").toString().trim();
+    if (!source) throw new Error("Please provide a topic or paste some content.");
+    if (source.length > 20000) throw new Error("Content too long (max 20,000 chars).");
+    return { source };
+  })
+  .handler(async ({ data }) => {
+    const userMsg = `Create a gamified ESL English lesson based on the following topic or source text. Derive the lesson title from it.\n\n---\n${data.source}\n---`;
+    const text = await callCoachio(userMsg);
+    const parsed = extractJson(text);
+    return normalize(parsed);
+  });
