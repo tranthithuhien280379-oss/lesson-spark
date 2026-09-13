@@ -3,6 +3,41 @@ import type { Lesson, Vocab, MCQ, TrueFalse, MatchPair, FillBlank } from "@/lib/
 
 type OnXp = (n: number) => void;
 
+// ---------- French TTS ----------
+// Mobile browsers often lack a fr-FR default voice and silently fall back to
+// the system voice (e.g. Vietnamese). Explicitly pick a French voice.
+let cachedFrVoice: SpeechSynthesisVoice | null | undefined;
+
+function getFrenchVoice(): SpeechSynthesisVoice | null {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
+  if (cachedFrVoice !== undefined) return cachedFrVoice;
+  const voices = window.speechSynthesis.getVoices();
+  cachedFrVoice =
+    voices.find((v) => v.lang.toLowerCase().startsWith("fr")) ??
+    voices.find((v) => /french|français/i.test(v.name)) ??
+    null;
+  return cachedFrVoice;
+}
+
+// Voices load asynchronously on many mobile browsers — refresh cache when ready.
+if (typeof window !== "undefined" && "speechSynthesis" in window) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    cachedFrVoice = undefined;
+    getFrenchVoice();
+  };
+}
+
+export function speakFrench(text: string) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "fr-FR";
+  const voice = getFrenchVoice();
+  if (voice) u.voice = voice;
+  u.rate = 0.9;
+  window.speechSynthesis.speak(u);
+}
+
 // ---------- Flashcards ----------
 export function Flashcards({ items, onXp }: { items: Vocab[]; onXp: OnXp }) {
   const [i, setI] = useState(0);
@@ -11,13 +46,7 @@ export function Flashcards({ items, onXp }: { items: Vocab[]; onXp: OnXp }) {
   const card = items[i];
   if (!card) return null;
 
-  const speak = (text: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "fr-FR";
-    u.rate = 0.9;
-    window.speechSynthesis.speak(u);
-  };
+  const speak = speakFrench;
 
   const next = (learned: boolean) => {
     if (learned && !known.has(i)) {
@@ -404,13 +433,7 @@ export function LuckyWheel({ onLand }: { onLand: (key: string) => void }) {
 
 // ---------- Vocab list ----------
 export function VocabList({ items }: { items: Vocab[] }) {
-  const speak = (t: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    const u = new SpeechSynthesisUtterance(t);
-    u.lang = "fr-FR";
-    u.rate = 0.9;
-    window.speechSynthesis.speak(u);
-  };
+  const speak = speakFrench;
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {items.map((v, i) => (
