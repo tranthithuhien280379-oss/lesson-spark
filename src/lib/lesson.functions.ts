@@ -127,8 +127,8 @@ function extractJson(text: string): unknown {
 function normalize(raw: unknown): Lesson {
   const r = raw as Partial<Lesson>;
   const lesson: Lesson = {
-    title: (r.title ?? "Your Lesson").toString().slice(0, 120),
-    level: (r.level as Lesson["level"]) ?? "Elementary",
+    title: (r.title ?? "Bài học của bạn").toString().slice(0, 120),
+    level: (r.level as Lesson["level"]) ?? "A1",
     summary: (r.summary ?? "").toString(),
     vocab: (r.vocab ?? []).slice(0, 12).map((v) => ({
       word: (v.word ?? "").toString(),
