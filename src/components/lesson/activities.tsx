@@ -46,13 +46,7 @@ export function Flashcards({ items, onXp }: { items: Vocab[]; onXp: OnXp }) {
   const card = items[i];
   if (!card) return null;
 
-  const speak = (text: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "fr-FR";
-    u.rate = 0.9;
-    window.speechSynthesis.speak(u);
-  };
+  const speak = speakFrench;
 
   const next = (learned: boolean) => {
     if (learned && !known.has(i)) {
@@ -439,13 +433,7 @@ export function LuckyWheel({ onLand }: { onLand: (key: string) => void }) {
 
 // ---------- Vocab list ----------
 export function VocabList({ items }: { items: Vocab[] }) {
-  const speak = (t: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    const u = new SpeechSynthesisUtterance(t);
-    u.lang = "fr-FR";
-    u.rate = 0.9;
-    window.speechSynthesis.speak(u);
-  };
+  const speak = speakFrench;
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {items.map((v, i) => (
