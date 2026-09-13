@@ -12,20 +12,20 @@ import { AuthPanel } from "@/components/auth-panel";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "LinguaQuest — Gamified ESL Lessons from Any Text" },
+      { title: "FrancoQuest — Học tiếng Pháp qua bài học trò chơi hóa" },
       {
         name: "description",
         content:
-          "Paste any topic or text and get an interactive English lesson: flashcards, quizzes, matching, wheel of fortune, and XP rewards. Powered by Coachio AI.",
+          "Dán bất kỳ chủ đề hay đoạn văn: AI tạo ngay bài học tiếng Pháp tương tác cho người Việt — thẻ ghi nhớ, trắc nghiệm, nối từ, vòng quay may mắn và điểm XP.",
       },
-      { property: "og:title", content: "LinguaQuest — Gamified ESL Lessons" },
-      { property: "og:description", content: "Turn any text into a fun, interactive English lesson with XP, streaks, and badges." },
+      { property: "og:title", content: "FrancoQuest — Học tiếng Pháp trò chơi hóa" },
+      { property: "og:description", content: "Biến mọi văn bản thành bài học tiếng Pháp vui nhộn với XP, chuỗi ngày học và huy hiệu." },
     ],
   }),
   component: Index,
 });
 
-const SAMPLE = `The Solar System has eight planets that orbit the Sun. Mercury is the closest and smallest. Venus is very hot. Earth is our home and has water and life. Mars is called the Red Planet. Jupiter is the biggest planet. Saturn has beautiful rings. Uranus and Neptune are cold gas giants far from the Sun.`;
+const SAMPLE = `Chủ đề: Chào hỏi và giới thiệu bản thân bằng tiếng Pháp. Người học cần biết nói xin chào, tạm biệt, hỏi tên, nói tên mình, hỏi thăm sức khỏe và nói mình đến từ Việt Nam.`;
 
 function Index() {
   const [source, setSource] = useState("");
@@ -44,7 +44,7 @@ function Index() {
       const l = await generateLesson({ data: { source: source || SAMPLE, apiKey } });
       setLesson(l);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError(e instanceof Error ? e.message : "Đã có lỗi xảy ra");
     } finally {
       setLoading(false);
     }
@@ -59,12 +59,12 @@ function Index() {
       <header className="sticky top-0 z-20 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3 px-4 py-3">
           <div className="flex items-center gap-2 text-lg font-extrabold">
-            <span className="text-2xl">🦉</span>
-            LinguaQuest
+            <span className="text-2xl">🥐</span>
+            FrancoQuest
           </div>
           <div className="ml-auto flex flex-wrap items-center gap-2 text-sm">
-            <Chip color="var(--gradient-sun)">🔥 {state.streak} day streak</Chip>
-            <Chip color="var(--gradient-mint)">⭐ Lv {state.level}</Chip>
+            <Chip color="var(--gradient-sun)">🔥 {state.streak} ngày liên tiếp</Chip>
+            <Chip color="var(--gradient-mint)">⭐ Cấp {state.level}</Chip>
             <Chip color="var(--gradient-card)">💎 {state.xp} XP</Chip>
             <ThemeToggle />
             <SettingsPanel apiKey={apiKey} onSave={setApiKey} />
@@ -73,14 +73,14 @@ function Index() {
         </div>
         <div className="mx-auto max-w-5xl px-4 pb-3">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="w-24">Level {state.level}</span>
+            <span className="w-24">Cấp {state.level}</span>
             <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
               <div className="h-full rounded-full transition-all" style={{ width: `${levelPct}%`, background: "var(--gradient-hero)" }} />
             </div>
             <span>{state.xp}/{xpForLevel(state.level)}</span>
           </div>
           <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="w-24">🎯 Daily goal</span>
+            <span className="w-24">🎯 Mục tiêu hôm nay</span>
             <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
               <div className="h-full rounded-full bg-[color:var(--accent)] transition-all" style={{ width: `${dailyPct}%` }} />
             </div>
@@ -92,14 +92,14 @@ function Index() {
       <main className="mx-auto max-w-5xl px-4 py-8">
         {/* Input card */}
         <section className="rounded-3xl p-6 shadow-[var(--shadow-pop)]" style={{ background: "var(--gradient-hero)" }}>
-          <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">Turn any text into a fun English lesson</h1>
+          <h1 className="text-2xl font-extrabold text-foreground sm:text-3xl">Biến mọi văn bản thành bài học tiếng Pháp thú vị</h1>
           <p className="mt-1 text-sm text-foreground/80">
-            Paste a paragraph, an article, a topic, or a story. AI will build vocab, flashcards, quizzes, matching, and more.
+            Dán một đoạn văn, bài báo, chủ đề hoặc câu chuyện. AI sẽ tạo từ vựng, thẻ ghi nhớ, trắc nghiệm, nối từ… với hướng dẫn bằng tiếng Việt.
           </p>
           <textarea
             value={source}
             onChange={(e) => setSource(e.target.value)}
-            placeholder="Paste text or type a topic (e.g. 'Ordering coffee at a café')..."
+            placeholder="Dán văn bản hoặc nhập chủ đề (ví dụ: 'Gọi cà phê ở quán')..."
             className="mt-4 h-32 w-full rounded-2xl border-2 border-white/40 bg-white/70 p-4 text-sm outline-none focus:border-primary dark:bg-card/70"
           />
           <div className="mt-3 flex flex-wrap gap-2">
@@ -108,20 +108,20 @@ function Index() {
               disabled={loading}
               className="rounded-full bg-primary px-6 py-3 font-bold text-primary-foreground shadow-[var(--shadow-pop)] transition hover:-translate-y-0.5 disabled:opacity-60"
             >
-              {loading ? "✨ Generating lesson…" : "🚀 Generate Lesson"}
+              {loading ? "✨ Đang tạo bài học…" : "🚀 Tạo bài học"}
             </button>
             <button
               onClick={() => setSource(SAMPLE)}
               className="rounded-full bg-white px-5 py-3 font-semibold shadow-[var(--shadow-soft)] dark:bg-card"
             >
-              Try sample
+              Dùng ví dụ mẫu
             </button>
             {lesson && (
               <button
                 onClick={() => { setLesson(null); setSource(""); }}
                 className="rounded-full bg-white/80 px-5 py-3 font-semibold shadow-[var(--shadow-soft)] dark:bg-card/80"
               >
-                New lesson
+                Bài học mới
               </button>
             )}
           </div>
@@ -145,7 +145,7 @@ function Index() {
         {lesson && (
           <section className="mt-6">
             <div className="mb-4 rounded-3xl bg-white p-5 shadow-[var(--shadow-soft)] dark:bg-card">
-              <div className="text-xs uppercase tracking-wider text-muted-foreground">{lesson.level} · Lesson</div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground">Trình độ {lesson.level} · Bài học</div>
               <h2 className="mt-1 text-2xl font-extrabold">{lesson.title}</h2>
               <p className="mt-1 text-sm text-muted-foreground">{lesson.summary}</p>
             </div>
@@ -155,9 +155,9 @@ function Index() {
 
         {!lesson && !loading && (
           <section className="mt-8 grid gap-3 sm:grid-cols-3">
-            <FeatureCard emoji="🃏" title="Flashcards" desc="Flip cards to learn words with pronunciation and examples." bg="var(--gradient-card)" />
-            <FeatureCard emoji="🎡" title="Wheel of Fortune" desc="Spin for a random activity to keep learning fun." bg="var(--gradient-mint)" />
-            <FeatureCard emoji="🏆" title="XP & Badges" desc="Earn XP, keep streaks, and unlock achievements." bg="var(--gradient-sun)" />
+            <FeatureCard emoji="🃏" title="Thẻ ghi nhớ" desc="Lật thẻ để học từ tiếng Pháp kèm phiên âm và ví dụ." bg="var(--gradient-card)" />
+            <FeatureCard emoji="🎡" title="Vòng quay may mắn" desc="Quay để chọn hoạt động bất ngờ, học mà như chơi." bg="var(--gradient-mint)" />
+            <FeatureCard emoji="🏆" title="XP & Huy hiệu" desc="Nhận XP, giữ chuỗi ngày học và mở khóa thành tích." bg="var(--gradient-sun)" />
           </section>
         )}
       </main>
@@ -174,10 +174,10 @@ function Index() {
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" onClick={dismissLevelUp}>
           <div className="max-w-sm rounded-3xl p-8 text-center shadow-[var(--shadow-pop)] animate-burst" style={{ background: "var(--gradient-hero)" }}>
             <div className="text-6xl">🎉</div>
-            <div className="mt-2 text-3xl font-extrabold">Level Up!</div>
-            <div className="mt-1 text-lg">You reached level {levelUp}</div>
+            <div className="mt-2 text-3xl font-extrabold">Lên cấp!</div>
+            <div className="mt-1 text-lg">Bạn đã đạt cấp {levelUp}</div>
             <button onClick={dismissLevelUp} className="mt-4 rounded-full bg-primary px-6 py-2 font-bold text-primary-foreground">
-              Awesome!
+              Tuyệt vời!
             </button>
           </div>
         </div>
