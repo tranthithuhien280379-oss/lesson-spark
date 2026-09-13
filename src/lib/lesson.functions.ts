@@ -31,7 +31,7 @@ export type FillBlank = {
 
 export type Lesson = {
   title: string;
-  level: "Beginner" | "Elementary" | "Intermediate";
+  level: "A1" | "A2" | "B1";
   summary: string;
   vocab: Vocab[];
   mcq: MCQ[];
@@ -40,28 +40,32 @@ export type Lesson = {
   fillBlanks: FillBlank[];
 };
 
-const SYSTEM_PROMPT = `You are an expert ESL curriculum designer. Given a topic or a passage of source material, produce a compact, engaging English lesson for beginner–intermediate ESL learners.
+const SYSTEM_PROMPT = `Bạn là chuyên gia thiết kế giáo trình tiếng Pháp (FLE) cho người Việt mới bắt đầu học tiếng Pháp. Dựa trên một chủ đề hoặc đoạn tài liệu, hãy tạo một bài học tiếng Pháp ngắn gọn, sinh động, trình độ A1–B1.
 
-Return ONLY valid minified JSON matching exactly this TypeScript type (no markdown, no code fences, no commentary):
+NGUYÊN TẮC NGÔN NGỮ (rất quan trọng):
+- Nội dung tiếng Pháp cần học: từ vựng, câu ví dụ, câu hội thoại, phát biểu Đúng/Sai.
+- MỌI hướng dẫn, giải thích, định nghĩa, gợi ý, tiêu đề câu hỏi đều viết bằng TIẾNG VIỆT đơn giản.
+
+Chỉ trả về JSON hợp lệ (không markdown, không code fence, không giải thích thêm) đúng theo kiểu:
 
 {
-  "title": string,               // short, catchy, derived from the source
-  "level": "Beginner" | "Elementary" | "Intermediate",
-  "summary": string,             // 1-2 sentences in simple English
-  "vocab": Array<{ "word": string, "definition": string, "emoji": string, "ipa": string, "example": string }>, // 8 items
-  "mcq": Array<{ "question": string, "options": string[], "answerIndex": number, "explanation": string }>, // 5 items, 4 options each
-  "trueFalse": Array<{ "statement": string, "answer": boolean, "explanation": string }>, // 5 items
-  "matching": Array<{ "left": string, "right": string }>, // 6 word↔definition pairs, from the vocab
-  "fillBlanks": Array<{ "dialogue": string, "answer": string, "hint": string }> // 5 items. Use "___" in dialogue as the blank.
+  "title": string,               // tiêu đề ngắn, hấp dẫn, bằng tiếng Việt (có thể kèm từ Pháp trong ngoặc)
+  "level": "A1" | "A2" | "B1",
+  "summary": string,             // 1-2 câu tiếng Việt mô tả bài học
+  "vocab": Array<{ "word": string, "definition": string, "emoji": string, "ipa": string, "example": string }>, // 8 từ. word = từ/cụm tiếng Pháp (kèm mạo từ le/la nếu là danh từ); definition = nghĩa tiếng Việt; example = câu ví dụ tiếng Pháp
+  "mcq": Array<{ "question": string, "options": string[], "answerIndex": number, "explanation": string }>, // 5 câu. question bằng tiếng Việt, options có thể là tiếng Pháp, explanation bằng tiếng Việt
+  "trueFalse": Array<{ "statement": string, "answer": boolean, "explanation": string }>, // 5 câu. statement bằng tiếng Pháp, explanation bằng tiếng Việt
+  "matching": Array<{ "left": string, "right": string }>, // 6 cặp: left = từ tiếng Pháp, right = nghĩa tiếng Việt
+  "fillBlanks": Array<{ "dialogue": string, "answer": string, "hint": string }> // 5 câu. dialogue là câu tiếng Pháp có "___", answer là từ tiếng Pháp, hint bằng tiếng Việt
 }
 
-Rules:
-- Use simple, clear English.
-- "emoji" must be ONE emoji character that visually represents the word.
-- "ipa" is IPA pronunciation in slashes e.g. "/ˈæpəl/".
-- Every MCQ must have exactly 4 options and a valid answerIndex (0–3).
-- fillBlanks.dialogue MUST contain the substring "___" (three underscores).
-- Vary difficulty. Keep sentences short.`;
+Quy tắc:
+- Tiếng Pháp đơn giản, câu ngắn, đúng chính tả và dấu (é, è, ê, ç, à...).
+- "emoji" là MỘT ký tự emoji minh họa từ đó.
+- "ipa" là phiên âm IPA tiếng Pháp trong hai gạch chéo, ví dụ "/bɔ̃.ʒuʁ/".
+- Mỗi câu MCQ phải có đúng 4 lựa chọn và answerIndex hợp lệ (0–3).
+- fillBlanks.dialogue PHẢI chứa chuỗi "___" (ba dấu gạch dưới).
+- Đa dạng độ khó, câu ngắn gọn.`;
 
 const COACHIO_URL = "https://api.coachio.ai/api/v1/llm/chat/completions";
 const COACHIO_MODEL = "google/gemini-3.1-flash-lite";
@@ -123,8 +127,8 @@ function extractJson(text: string): unknown {
 function normalize(raw: unknown): Lesson {
   const r = raw as Partial<Lesson>;
   const lesson: Lesson = {
-    title: (r.title ?? "Your Lesson").toString().slice(0, 120),
-    level: (r.level as Lesson["level"]) ?? "Elementary",
+    title: (r.title ?? "Bài học của bạn").toString().slice(0, 120),
+    level: (r.level as Lesson["level"]) ?? "A1",
     summary: (r.summary ?? "").toString(),
     vocab: (r.vocab ?? []).slice(0, 12).map((v) => ({
       word: (v.word ?? "").toString(),
@@ -161,12 +165,12 @@ export const generateLesson = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => {
     const o = input as { source?: string; apiKey?: string };
     const source = (o?.source ?? "").toString().trim();
-    if (!source) throw new Error("Please provide a topic or paste some content.");
-    if (source.length > 20000) throw new Error("Content too long (max 20,000 chars).");
+    if (!source) throw new Error("Vui lòng nhập chủ đề hoặc dán nội dung.");
+    if (source.length > 20000) throw new Error("Nội dung quá dài (tối đa 20.000 ký tự).");
     return { source, apiKey: o?.apiKey };
   })
   .handler(async ({ data }) => {
-    const userMsg = `Create a gamified ESL English lesson based on the following topic or source text. Derive the lesson title from it.\n\n---\n${data.source}\n---`;
+    const userMsg = `Hãy tạo một bài học tiếng Pháp trò chơi hóa cho người Việt mới học, dựa trên chủ đề hoặc đoạn tài liệu sau. Tiêu đề bài học lấy từ nội dung này. Mọi hướng dẫn và giải thích viết bằng tiếng Việt.\n\n---\n${data.source}\n---`;
     const text = await callCoachio(userMsg, data.apiKey);
     const parsed = extractJson(text);
     return normalize(parsed);
