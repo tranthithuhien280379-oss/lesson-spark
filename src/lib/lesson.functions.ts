@@ -165,12 +165,12 @@ export const generateLesson = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => {
     const o = input as { source?: string; apiKey?: string };
     const source = (o?.source ?? "").toString().trim();
-    if (!source) throw new Error("Please provide a topic or paste some content.");
-    if (source.length > 20000) throw new Error("Content too long (max 20,000 chars).");
+    if (!source) throw new Error("Vui lòng nhập chủ đề hoặc dán nội dung.");
+    if (source.length > 20000) throw new Error("Nội dung quá dài (tối đa 20.000 ký tự).");
     return { source, apiKey: o?.apiKey };
   })
   .handler(async ({ data }) => {
-    const userMsg = `Create a gamified ESL English lesson based on the following topic or source text. Derive the lesson title from it.\n\n---\n${data.source}\n---`;
+    const userMsg = `Hãy tạo một bài học tiếng Pháp trò chơi hóa cho người Việt mới học, dựa trên chủ đề hoặc đoạn tài liệu sau. Tiêu đề bài học lấy từ nội dung này. Mọi hướng dẫn và giải thích viết bằng tiếng Việt.\n\n---\n${data.source}\n---`;
     const text = await callCoachio(userMsg, data.apiKey);
     const parsed = extractJson(text);
     return normalize(parsed);
