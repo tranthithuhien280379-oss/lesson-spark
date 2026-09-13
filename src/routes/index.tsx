@@ -20,6 +20,8 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:title", content: "FrancoQuest — Học tiếng Pháp trò chơi hóa" },
       { property: "og:description", content: "Biến mọi văn bản thành bài học tiếng Pháp vui nhộn với XP, chuỗi ngày học và huy hiệu." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Index,
